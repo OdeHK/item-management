@@ -4,7 +4,7 @@ import pandas as pd
 from charts.imr_chart import create_imr_chart
 from charts.histogram_chart import create_histogram_with_probability
 
-st.set_page_config(layout="wide")
+st.set_page_config(page_title="Item Management Dashboard", layout="wide")
 
 st.title("Item Management Dashboard")
 
@@ -17,6 +17,7 @@ items = sorted(df['ProductItem'].unique())
 selected = st.sidebar.selectbox("Chọn Product Item", items)
 item_df = df[df['ProductItem'] == selected].reset_index(drop=True)
 
+st.subheader(f"Item: {selected}")
 st.dataframe(item_df)
 
 st.markdown("# Chart Visualization")
