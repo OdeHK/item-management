@@ -99,26 +99,6 @@ def auto_calculate_spec_limits(data, stats):
         'LSL': LSL,
         'USL': USL
     }
-    """
-    Calculate statistics needed for histogram and capability analysis
-    
-    Parameters:
-    data: Array of measurement values
-    
-    Returns:
-    dict: Dictionary with all statistics
-    """
-    n = len(data)
-    mean = np.mean(data)
-    std = np.std(data, ddof=1)  # Sample standard deviation
-    
-    return {
-        'n': n,
-        'mean': mean,
-        'std': std,
-        'min': np.min(data),
-        'max': np.max(data)
-    }
 
 
 def create_normal_curve_data(mean, std, x_min, x_max, n_points=200):
@@ -170,9 +150,9 @@ def calculate_histogram_statistics(data):
     }
 
 
-def create_histogram_chart(data, bin_params, stats, LSL=None, USL=None, chart_width=650, chart_height=500):
+def create_histogram_chart(data, bin_params, stats, LSL=None, USL=None):
     """
-    Create histogram with normal distribution overlay
+    Create histogram with normal distribution overlay (responsive)
     
     Parameters:
     data: Array of measurement values
@@ -180,8 +160,6 @@ def create_histogram_chart(data, bin_params, stats, LSL=None, USL=None, chart_wi
     stats: Dictionary with statistics
     LSL: Lower Specification Limit
     USL: Upper Specification Limit
-    chart_width: Width of the chart in pixels
-    chart_height: Height of the chart in pixels
     
     Returns:
     Altair chart object
@@ -205,17 +183,13 @@ def create_histogram_chart(data, bin_params, stats, LSL=None, USL=None, chart_wi
     })
     hist_df['bin_center'] = (hist_df['bin_start'] + hist_df['bin_end']) / 2
     
-    # Calculate dynamic bar width for visualization
-    bar_width_ratio = 0.8  # 80% of bin width for visual appeal
-    pixel_per_unit = chart_width / bin_params['plot_range']
-    bar_width_pixels = bin_params['bin_width'] * pixel_per_unit * bar_width_ratio
-    
-    # Create histogram bars
+    # Create histogram bars (responsive - no fixed size)
     bars = alt.Chart(hist_df).mark_bar(
-        color='#2ca02c',  # Teal/green color like in the image
+        color='#2ca02c',  # Green color
         opacity=0.8,
         stroke='black',
-        strokeWidth=0.5
+        strokeWidth=2,
+        size=50
     ).encode(
         x=alt.X('bin_center:Q', 
                 title='Test Result',
@@ -223,8 +197,7 @@ def create_histogram_chart(data, bin_params, stats, LSL=None, USL=None, chart_wi
                 axis=alt.Axis(format='.3f')),
         y=alt.Y('probability:Q', 
                 title='Probability',
-                scale=alt.Scale(domain=[0, max(hist_df['probability']) * 1.2])),
-        size=alt.value(max(10, min(60, bar_width_pixels)))  # Clamp between 10-60 pixels
+                scale=alt.Scale(domain=[0, max(hist_df['probability']) * 1.2]))
     )
     
     # Create normal distribution curve
@@ -289,10 +262,9 @@ def create_histogram_chart(data, bin_params, stats, LSL=None, USL=None, chart_wi
         )
         chart_layers.extend([usl_line, usl_text])
     
-    # Combine all layers
+    # Combine all layers (responsive - container width)
     chart = alt.layer(*chart_layers).properties(
-        width=chart_width,
-        height=chart_height,
+        height=450,
         title='Histogram'
     )
     
@@ -430,20 +402,19 @@ def create_histogram(df, LSL=None, USL=None, Target=None, auto_spec_limits=True)
     # Calculate capability indices if spec limits provided
     capability = calculate_process_capability(stats_dict, LSL, USL)
     
-    # Create 2-column layout
+    # Create 2-column layout (responsive)
     col1, col2 = st.columns(2)
     
     with col1:
-        # Create and display histogram
-        chart = create_histogram_chart(data, bin_params, stats_dict, LSL, USL, 
-                                       chart_width=1000, chart_height=800)
-        st.altair_chart(chart, use_container_width=False)
+        # Create and display histogram (responsive with use_container_width=True)
+        chart = create_histogram_chart(data, bin_params, stats_dict, LSL, USL)
+        st.altair_chart(chart, use_container_width=True)
     
     with col2:
-        # Import and display Normal Probability Plot
+        # Import and display Normal Probability Plot (responsive)
         from charts.probability_plot import create_probability_plot
         create_probability_plot(data, stats_dict['mean'], stats_dict['std'], 
-                               chart_width=650, chart_height=500, show_test=True)
+                               chart_width=6.5, chart_height=5, show_test=True)
     
     # Display capability table (full width below charts)
     display_capability_table(stats_dict, capability, LSL, USL, Target)

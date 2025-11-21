@@ -79,7 +79,7 @@ def calculate_anderson_darling(data):
     }
 
 
-def create_probability_plot_chart(data, mean, std, chart_width=650, chart_height=500):
+def create_probability_plot_chart(data, mean, std, chart_width=6.5, chart_height=5):
     """
     Create Normal Probability Plot - CHÍNH XÁC như app_with_excel.py
     Trục X = Theoretical quantiles (theoretical values from normal distribution)
@@ -89,8 +89,8 @@ def create_probability_plot_chart(data, mean, std, chart_width=650, chart_height
     data: Array of measurement values
     mean: Sample mean
     std: Sample standard deviation
-    chart_width: Width of chart in pixels
-    chart_height: Height of chart in pixels
+    chart_width: Width of chart in inches (default 6.5)
+    chart_height: Height of chart in inches (default 5)
     
     Returns:
     matplotlib figure and R² value
@@ -145,7 +145,7 @@ def create_probability_plot_chart(data, mean, std, chart_width=650, chart_height
     lower_bound_y = fitted_line - ci_width
     
     # ===== Vẽ BẰNG MATPLOTLIB =====
-    fig, ax = plt.subplots(figsize=(chart_width/100, chart_height/100), dpi=100)
+    fig, ax = plt.subplots(figsize=(chart_width, chart_height), dpi=100)
     
     # Confidence bands (hình chữ V ngược)
     ax.plot(theoretical_quantiles, upper_bound_y, color='red', linewidth=2)

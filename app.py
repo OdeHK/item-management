@@ -17,8 +17,7 @@ items = sorted(df['ProductItem'].unique())
 selected = st.sidebar.selectbox("Chọn Product Item", items)
 item_df = df[df['ProductItem'] == selected].reset_index(drop=True)
 
-st.subheader(f"Item: {selected}")
-st.dataframe(item_df)
+st.sidebar.dataframe(item_df[['Date', 'Measure']], hide_index=True)
 
 st.markdown("# Chart Visualization")
 
