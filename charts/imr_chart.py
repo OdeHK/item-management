@@ -40,9 +40,52 @@ def calculate_imr_statistics(df):
     }
 
 
+def calculate_smart_y_range(data_values, ucl, lcl):
+    """
+    Calculate smart Y-axis range that focuses on data region
+    
+    Parameters:
+    data_values: Array of data points
+    ucl: Upper control limit
+    lcl: Lower control limit
+    
+    Returns:
+    tuple: (y_min, y_max) for chart
+    """
+    # Get actual data range
+    data_min = np.min(data_values)
+    data_max = np.max(data_values)
+    data_range = data_max - data_min
+    
+    # Control limits range
+    control_range = ucl - lcl
+    
+    # If data range is very small compared to control range
+    # Focus more on data region
+    if data_range < control_range * 0.3:
+        # Use data range with padding
+        padding = data_range * 0.2
+        y_min = max(lcl, data_min - padding)
+        y_max = min(ucl, data_max + padding)
+        
+        # Ensure we still show control limits if they're close
+        margin = control_range * 0.05
+        if ucl - y_max < margin:
+            y_max = ucl + margin
+        if y_min - lcl < margin:
+            y_min = lcl - margin
+    else:
+        # Data fills most of control range, use standard padding
+        padding = control_range * 0.05
+        y_min = lcl - padding
+        y_max = ucl + padding
+    
+    return y_min, y_max
+
+
 def create_individual_chart(df, stats):
     """
-    Create Individual values chart (I Chart)
+    Create Individual values chart (I Chart) with smart Y-axis scaling
     
     Parameters:
     df: DataFrame with measurement data
@@ -55,6 +98,13 @@ def create_individual_chart(df, stats):
     chart_df['Observation'] = range(1, len(chart_df) + 1)
     chart_df['Individual'] = chart_df['Measure']
     
+    # Calculate smart Y range
+    y_min, y_max = calculate_smart_y_range(
+        chart_df['Individual'].values, 
+        stats['UCL_I'], 
+        stats['LCL_I']
+    )
+    
     base = alt.Chart(chart_df).encode(
         x=alt.X('Observation:Q', 
                 title='Observation', 
@@ -65,7 +115,7 @@ def create_individual_chart(df, stats):
     line = base.mark_line(color='blue', point=True).encode(
         y=alt.Y('Individual:Q', 
                 title='Individual values', 
-                scale=alt.Scale(domain=[stats['LCL_I'] - 0.05, stats['UCL_I'] + 0.05]))
+                scale=alt.Scale(domain=[y_min, y_max]))
     )
     
     # Center Line
@@ -117,7 +167,7 @@ def create_individual_chart(df, stats):
 
 def create_moving_range_chart(df, stats):
     """
-    Create Moving Range chart (MR Chart)
+    Create Moving Range chart (MR Chart) with smart Y-axis scaling
     
     Parameters:
     df: DataFrame with measurement data
@@ -133,6 +183,25 @@ def create_moving_range_chart(df, stats):
     # Remove first row (no MR value)
     chart_df = chart_df[chart_df['MR'].notna()]
     
+    # Calculate smart Y range for MR chart
+    mr_values = chart_df['MR'].values
+    mr_max = np.max(mr_values)
+    mr_range = stats['UCL_MR'] - stats['LCL_MR']
+    
+    # If max MR is much smaller than UCL, focus on data region
+    if mr_max < stats['UCL_MR'] * 0.6:
+        padding = mr_max * 0.2
+        y_max = min(stats['UCL_MR'], mr_max + padding)
+        margin = mr_range * 0.05
+        if stats['UCL_MR'] - y_max < margin:
+            y_max = stats['UCL_MR'] + margin
+        y_min = stats['LCL_MR']
+    else:
+        # Standard range
+        padding = mr_range * 0.05
+        y_min = stats['LCL_MR']
+        y_max = stats['UCL_MR'] + padding
+    
     base = alt.Chart(chart_df).encode(
         x=alt.X('Observation:Q', 
                 title='Observation', 
@@ -143,7 +212,7 @@ def create_moving_range_chart(df, stats):
     line = base.mark_line(color='blue', point=True).encode(
         y=alt.Y('MR:Q', 
                 title='Moving Range', 
-                scale=alt.Scale(domain=[stats['LCL_MR'], stats['UCL_MR'] + 0.03]))
+                scale=alt.Scale(domain=[y_min, y_max]))
     )
     
     # Center Line
@@ -173,7 +242,7 @@ def create_moving_range_chart(df, stats):
     cl_text = alt.Chart(pd.DataFrame({
         'x': [len(df)], 
         'y': [stats['MR_bar']], 
-        'text': [f"M̄R: {stats['MR_bar']:.2f}"]
+        'text': [f"MR̄: {stats['MR_bar']:.2f}"]
     })).mark_text(align='right', dx=40, dy=-5, fontSize=11).encode(
         x='x:Q', y='y:Q', text='text:N'
     )
